@@ -9,7 +9,6 @@ class World:
 
     def __init__(self):
 
-
         self.nRows = 4
         self.nCols = 4
         self.stateHoles = [1, 7, 14, 15]
@@ -19,10 +18,7 @@ class World:
         self.nActions = 4
         self.rewards = np.array([-1] + [-0.04] * 5 + [-1] + [-0.04] * 5 + [1, -1, -1] + [-0.04])
         self.stateInitial = [4]
-        self.observation =[]
-
-
-
+        self.observation = []
 
     def _plot_world(self):
 
@@ -83,9 +79,8 @@ class World:
         plt.title('MDP gridworld', size=16)
         plt.axis("equal")
         plt.axis("off")
-        #plt.show(block=False)
+        # plt.show(block=False)
         plt.show()
-
 
     def plot_value(self, valueFunction):
 
@@ -247,36 +242,85 @@ class World:
                                                      columns=range(1, nstates + 1))
         return transition_models
 
+    # def step(self, action):
+    #     observation = self.observation
+    #     state = observation[0]
+    #     prob = {}
+    #     done = False
+    #     transition_models = self.get_transition_model(0.8)
+    #     # print('inside')
+    #     # print(state)
+    #     # print(action)
+    #     prob = transition_models[action].loc[state, :]
+    #     print(transition_models[action].loc[state, :])
+    #     s = choice(self.States, 1, p=prob)
+    #     next_state = s[0]
+    #     reward = self.rewards[next_state - 1]
+    #
+    #     if next_state in self.stateGoal + self.stateHoles:
+    #         done = True
+    #     self.observation = [next_state]
+    #     return next_state, reward, done
+
     def step(self, action):
-        observation = self.observation
-        state = observation[0]
-        prob = {}
-        done = False
-        transition_models = self.get_transition_model(0.8)
-        #print('inside')
-        #print(state)
-        #print(action)
-        prob = transition_models[action].loc[state, :]
-        #print(transition_models[action].loc[state, :])
+        state = self.observation[0]
+        done = 0
+        prob = self.transition_model(action-1)[state-1]
         s = choice(self.States, 1, p=prob)
         next_state = s[0]
         reward = self.rewards[next_state - 1]
-
         if next_state in self.stateGoal + self.stateHoles:
             done = True
         self.observation = [next_state]
         return next_state, reward, done
 
+    def _step(self, state, action, possible_state, reward):
+        p_actions = [[0.8, 0.1, 0, 0.1],
+                     [0.1, 0.8, 0.1, 0],
+                     [0, 0.1, 0.8, 0.1],
+                     [0.1, 0, 0.1, 0.8]]
+        done = 0
+        state += 1
+        if state in self.get_stateGoal():
+            return 0, state, 1, 1
+        elif state not in self.get_stateHoles():
+            if possible_state == 0:
+                state_ = state - 1 if state % 4 != 1 else state
+            elif possible_state == 1:
+                state_ = state + 4 if state < 13 else state
+            elif possible_state == 2:
+                state_ = state + 1 if state % 4 != 0 else state
+            else:
+                state_ = state - 4 if state > 4 else state
+        else:
+            return 0, state, -1, 1
+        # Check if finish or fail
+        if state_ in self.get_stateGoal() or state_ in self.get_stateHoles():
+            done = 1
+        if state_ not in self.get_stateGoal():
+            reward = -1 if state_ in self.get_stateHoles() else reward
+        else:
+            reward = 1
+        return p_actions[action][possible_state], state_, reward, done
+
+    def transition_model(self, action):
+        transition_matrix = np.zeros([16, 16])
+        for s in range(self.nStates):
+            for a in range(self.nActions):
+                prob, next_state, reward, done = self._step(s, action, a, 1)
+                transition_matrix[s][next_state - 1] += prob
+        # print(transition_matrix)
+        return transition_matrix
+
     def reset(self, *args):
-    #def reset(self):
         if not args:
             observation = self.stateInitial
         else:
             observation = []
-            while not (observation):
+            while not observation:
                 observation = np.setdiff1d(choice(self.States), self.stateHoles + self.stateGoal)
         self.observation = observation
-        #return observation
+        # return observation
 
     def render(self):
 
@@ -287,40 +331,38 @@ class World:
         stateHoles = self.stateHoles
         stateGoal = self.stateGoal
 
-        observation = self.observation #observation
+        observation = self.observation # observation
         state = observation[0]
 
-        #state = 3
+        # state = 3
 
-        J = nRows - (state-1) % nRows -1
+        J = nRows - (state-1) % nRows - 1
         I = int((state-1)/nCols)
-
-
-        circle = plt.Circle((I+0.5,J+0.5), 0.28, color='black')
+        circle = plt.Circle((I+0.5, J+0.5), 0.28, color='black')
         fig = plt.gcf()
         ax = fig.gca()
         ax.add_artist(circle)
 
         self.plot()
 
-        #plt.ion()
-        #plt.show()
-        #plt.draw()
-        #plt.pause(0.5)
-        #plt.ion()
-        #plt.show(block=False)
-        #time.sleep(1)
+        # plt.ion()
+        # plt.show()
+        # plt.draw()
+        # plt.pause(0.5)
+        # plt.ion()
+        # plt.show(block=False)
+        # time.sleep(1)
         # nRows = self.nRows
         # nCols = self.nCols
         # stateHoles = self.stateHoles
         # stateGoal = self.stateGoal
 
 
-        #print(state)
+        # print(state)
 
-        #circle = plt.Circle((0.5, 0.5), 0.1, color='black')
-        #fig, ax = plt.subplots()
-        #ax.add_artist(circle)
+        # circle = plt.Circle((0.5, 0.5), 0.1, color='black')
+        # fig, ax = plt.subplots()
+        # ax.add_artist(circle)
 
         # k = 0
         # for i in range(nCols):
@@ -378,6 +420,42 @@ class World:
     def q_learning(self, epsilon, gamma, alpha, num_of_episodes):
         sarsa = False
         return self.optimal_Q_values(epsilon, gamma, alpha, num_of_episodes, sarsa)
+
+    def plot_actionValues(self, Q):
+        '''
+        :param Q: state-action values
+        :return: plots the state-action values on the gridworld
+        '''
+        nRows = self.nRows
+        nCols = self.nCols
+        stateHoles = self.stateHoles
+        stateGoal = self.stateGoal
+
+        fig = plt.plot(1)
+        self._plot_world()
+        k = 0
+        for i in range(nCols):
+            for j in range(nRows, 0, -1):
+                if k + 1 not in stateHoles + stateGoal:
+                    plt.text(i + 0.5, j - 0.02, str(self._truncate(Q[k, 0], 2)), fontsize=8,
+                             horizontalalignment='center', verticalalignment='top')
+                    plt.text(i + 1, j - 0.5, str(self._truncate(Q[k, 1], 2)), fontsize=8,
+                             horizontalalignment='right', verticalalignment='center')
+                    plt.text(i + 0.5, j - 1, str(self._truncate(Q[k, 2], 2)), fontsize=8,
+                             horizontalalignment='center', verticalalignment='bottom')
+                    plt.text(i, j - 0.5, str(self._truncate(Q[k, 3], 2)), fontsize=8,
+                             horizontalalignment='left', verticalalignment='center')
+                    # plot([0, 1, 2, 3, 4, 5], [5, 4, 3, 2, 1, 0])
+                    # plot([0, 1, 2, 3, 4, 5])
+                    plot([i, i + 1], [j - 1, j], '-g', lw=0.2)
+                    plot([i + 1, i], [j - 1, j], '-b', lw=0.2)
+                k += 1
+
+        plt.plot([0, 0], [nCols, nRows], 'b', lw=2)
+        plt.title('MDP gridworld', size=16)
+        plt.axis("equal")
+        plt.axis("off")
+        plt.show()
 
     def plot_action_values(self, Q):
         Q = np.array(np.max(Q, axis=1))
