@@ -387,20 +387,23 @@ class World:
             target = reward + gamma * np.max(Q[state2 - 1, :])
         Q[state - 1, action - 1] = predict + lr_rate * (target - predict)
 
-    def optimal_Q_values(self, epsilon, gamma, alpha, num_of_episodes, sarsa):
+    def optimal_Q_values(self, epsilon, gamma, alpha, num_of_episodes, sarsa, decay_rate=0.0001):
+        # print('Decay %s' % decay_rate)
         min_epsilon = 0.01
-        decay_rate = 0.0001
         Q = np.zeros([self.nStates, self.nActions])
+        scores = []
         for i in range(num_of_episodes):
             print('Episode: %s,\nepsilon: %s' % (i, epsilon))
             np.random.seed(i)
             done = False
+            score = 0
             self.reset()
             epsilon = epsilon - decay_rate if epsilon > min_epsilon else min_epsilon
             state = self.observation[0]
             action = self.choose_action(state, Q, epsilon)
             while not done:
                 state2, reward, done = self.step(action)
+                score += reward
                 action2 = self.choose_action(state2, Q, epsilon)
                 # print('state: %s, state2: %s, reward: %s, action: %s, action2: %s, Q: %s' %
                 #       (state, state2, reward, action, action2, Q))
@@ -410,22 +413,19 @@ class World:
                 else:
                     action = self.choose_action(state, Q, epsilon)
                 state = self.observation[0]
+            scores.append(score)
         print('Q Values:\n', Q)
-        return Q
+        return Q, scores
 
-    def sarsa(self, epsilon, gamma, alpha, num_of_episodes):
+    def sarsa(self, epsilon, gamma, alpha, num_of_episodes, decay_rate=0.0001):
         sarsa = True
-        return self.optimal_Q_values(epsilon, gamma, alpha, num_of_episodes, sarsa)
+        return self.optimal_Q_values(epsilon, gamma, alpha, num_of_episodes, sarsa, decay_rate)
 
-    def q_learning(self, epsilon, gamma, alpha, num_of_episodes):
+    def q_learning(self, epsilon, gamma, alpha, num_of_episodes, decay_rate=0.0001):
         sarsa = False
-        return self.optimal_Q_values(epsilon, gamma, alpha, num_of_episodes, sarsa)
+        return self.optimal_Q_values(epsilon, gamma, alpha, num_of_episodes, sarsa, decay_rate)
 
     def plot_actionValues(self, Q):
-        '''
-        :param Q: state-action values
-        :return: plots the state-action values on the gridworld
-        '''
         nRows = self.nRows
         nCols = self.nCols
         stateHoles = self.stateHoles
@@ -438,20 +438,17 @@ class World:
             for j in range(nRows, 0, -1):
                 if k + 1 not in stateHoles + stateGoal:
                     plt.text(i + 0.5, j - 0.02, str(self._truncate(Q[k, 0], 2)), fontsize=8,
-                             horizontalalignment='center', verticalalignment='top')
+                             horizontalalignment='center', verticalalignment='top', multialignment='center')
                     plt.text(i + 1, j - 0.5, str(self._truncate(Q[k, 1], 2)), fontsize=8,
-                             horizontalalignment='right', verticalalignment='center')
+                             horizontalalignment='right', verticalalignment='center', multialignment='right')
                     plt.text(i + 0.5, j - 1, str(self._truncate(Q[k, 2], 2)), fontsize=8,
-                             horizontalalignment='center', verticalalignment='bottom')
+                             horizontalalignment='center', verticalalignment='bottom', multialignment='center')
                     plt.text(i, j - 0.5, str(self._truncate(Q[k, 3], 2)), fontsize=8,
-                             horizontalalignment='left', verticalalignment='center')
-                    # plot([0, 1, 2, 3, 4, 5], [5, 4, 3, 2, 1, 0])
-                    # plot([0, 1, 2, 3, 4, 5])
-                    plot([i, i + 1], [j - 1, j], '-g', lw=0.2)
-                    plot([i + 1, i], [j - 1, j], '-b', lw=0.2)
+                             horizontalalignment='left', verticalalignment='center', multialignment='left')
+                    plot([i, i + 1], [j - 1, j], 'black', lw=0.5)
+                    plot([i + 1, i], [j - 1, j], 'black', lw=0.5)
                 k += 1
 
-        plt.plot([0, 0], [nCols, nRows], 'b', lw=2)
         plt.title('MDP gridworld', size=16)
         plt.axis("equal")
         plt.axis("off")
